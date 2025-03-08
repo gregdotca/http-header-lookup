@@ -1,7 +1,7 @@
 <html data-theme="bumblebee">
 <head>
     <title>{{ app_title }}</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
     <style>
         .badge-green {
@@ -30,8 +30,9 @@
         }
     </style>
     {% include 'custom.headers' ignore missing %}
-    <link href="{{ url_for('static', filename='css/tailwind.2.2.19.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/daisyui.2.6.0.css') }}" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.0/themes.css" rel="stylesheet" type="text/css" />
 </head>
 <body class="p-8">
 <div id="content">
@@ -39,18 +40,17 @@
     <strong>Enter a list of domains or URLs, one per line</strong><BR>
     <form method="POST" action="/" class="form pb-7">
         <div class="flex justify-left">
-            <fieldset class="fieldset bg-base-200 border border-base-300 p-8 rounded-box">
-            <textarea style="padding: 5px; margin-top: 5px; margin-bottom: 5px;" id="url_list" name="url_list" placeholder="{{url_list}}" rows="8" cols="50" autofocus>{{url_list}}</textarea><BR>
-            <input class="btn btn-primary mt-5 mb-2" type="submit" name="submit" value="Lookup" onclick="$('#loading').show();">
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <fieldset class="fieldset bg-base-200 border border-base-300 p-10 rounded-box">
+            <textarea id="url_list" name="url_list" placeholder="{{url_list}}" rows="8" cols="50" autofocus>{{url_list}}</textarea>
             {% if sort_results == 1 %}
-                <label for="sort_results">Sort results?</label> <input id="sort_results" type="checkbox" name="sort_results" value="1" checked>
+                <label for="sort_results" class="pt-3 pb-2">Sort results?&nbsp;&nbsp;<input id="sort_results" type="checkbox" name="sort_results" value="1" checked></label>
             {% else %}
-                <label for="sort_results">Sort results?</label> <input id="sort_results" type="checkbox" name="sort_results" value="1">
+                <label for="sort_results" class="pt-3 pb-2">Sort results?&nbsp;&nbsp;<input id="sort_results" type="checkbox" name="sort_results" value="1"></label>
             {% endif %}
+            <input class="btn btn-accent" type="submit" name="submit" value="Lookup" onclick="$('#loading').show();">
             </fieldset>
         </div>
-        <div id="loading" style="display: none;"><button class="btn btn-primary loading mt-12">loading</button></div>
+        <div id="loading" style="display: none;"><button class="btn btn-accent loading mt-12"></button></div>
     </form>
     {{ page_body|safe }}
 </div>
