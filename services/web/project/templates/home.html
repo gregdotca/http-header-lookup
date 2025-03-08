@@ -37,10 +37,10 @@
 <body class="p-8">
 <div id="content">
     <h1 class="text-2xl mb-3"><a href="/">{{ app_title }}</a></h1>
-    <strong>Enter a list of domains or URLs, one per line</strong><BR>
+    <div class="mb-3">Enter a list of domains or URLs, one per line</div>
     <form method="POST" action="/" class="form pb-7">
         <div class="flex justify-left">
-            <fieldset class="fieldset bg-base-200 border border-base-300 p-10 rounded-box">
+            <fieldset class="fieldset bg-base-200 border border-base-300 p-10 -ml-1 rounded-box">
             <textarea id="url_list" name="url_list" placeholder="{{url_list}}" rows="8" cols="50" autofocus>{{url_list}}</textarea>
             {% if sort_results == 1 %}
                 <label for="sort_results" class="pt-3 pb-2">Sort results?&nbsp;&nbsp;<input id="sort_results" type="checkbox" name="sort_results" value="1" checked></label>
