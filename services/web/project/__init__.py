@@ -5,13 +5,13 @@ import tldextract
 
 app = Flask(__name__, static_folder="assets")
 
-site_title = "HTTP Header Lookup"
+APP_TITLE = "HTTP Header Lookup"
 
 
 @app.route("/")
 def home():
     return render_template(
-        "home.html", site_title=site_title, page_body="", sort_results=0
+        "home.html", app_title=APP_TITLE, page_body="", sort_results=0
     )
 
 
@@ -89,7 +89,7 @@ def process_url_list(url_list, sort_results):
         # Create a list of HTTP header lookups to display in the homepage's body, grouped by domain
         for domain in base_domains:
 
-            page_body += "<h2>" + domain + "</h2>"
+            page_body += "<h2 class=\"mb-3 font-bold\">" + domain + "</h2>"
 
             # Sort the URL list (if applicable)
             if sort_results == 1:
@@ -210,7 +210,7 @@ def get_url_headers(url):
 def display_homepage(form_input, page_body, sort_results):
     return render_template(
         "home.html",
-        site_title=site_title,
+        app_title=APP_TITLE,
         url_list=form_input,
         page_body=page_body,
         sort_results=sort_results,
