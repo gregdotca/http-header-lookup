@@ -104,6 +104,8 @@ def process_url_list(url_list, sort_results):
                 if "." + domain in url or "/" + domain in url:
                     page_body += get_url_headers(url)
 
+            page_body += "<BR>"
+
     except Exception:
 
         page_body += "There was an error processing the URL list, please try again."
