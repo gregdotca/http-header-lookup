@@ -10,9 +10,7 @@ APP_TITLE = "HTTP Header Lookup"
 
 @app.route("/")
 def home():
-    return render_template(
-        "home.html", app_title=APP_TITLE, page_body="", sort_results=0
-    )
+    return render_template("home.html", app_title=APP_TITLE, page_body="", sort_results=0)
 
 
 @app.route("/", methods=["POST"])
@@ -157,7 +155,7 @@ def get_url_headers(url):
                     result += badge("info", status_code + ">") + " " + location
 
                 elif (
-                    status_code == "404" or status_code == "500" or status_code == "502"
+                        status_code == "404" or status_code == "500" or status_code == "502"
                 ):
 
                     result += badge("failure", status_code + " " + reason)
@@ -175,9 +173,9 @@ def get_url_headers(url):
                         badge_type = "success"
 
                     elif (
-                        status_code == "404"
-                        or status_code == "500"
-                        or status_code == "502"
+                            status_code == "404"
+                            or status_code == "500"
+                            or status_code == "502"
                     ):
 
                         badge_type = "failure"
