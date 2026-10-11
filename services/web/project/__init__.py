@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import html
 import ipaddress
+import re
 import socket
 from urllib.parse import urlsplit
 
@@ -173,8 +174,14 @@ def process_url_list(url_list, sort_results):
 
 def get_base_domain(url):
     # IP addresses and hosts without a public suffix (such as localhost) have no base domain, so they're
-    # grouped by their host instead
-    return tldextract.extract(url).top_domain_under_public_suffix or get_host(url) or url
+    # grouped by their host instead. URLs that can't be parsed are grouped by what's left after removing the
+    # scheme and www., so all the variations expand_url_list made from one entry stay together.
+    return (
+        tldextract.extract(url).top_domain_under_public_suffix
+        or get_host(url)
+        or re.sub(r"^https?://(www\.)?", "", url)
+        or url
+    )
 
 
 def get_host(url):
