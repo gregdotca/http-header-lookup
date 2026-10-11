@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import html
+
 from flask import Flask, render_template, request
 import requests
 import tldextract
@@ -87,7 +89,7 @@ def process_url_list(url_list, sort_results):
         # Create a list of HTTP header lookups to display in the homepage's body, grouped by domain
         for domain in base_domains:
 
-            page_body += "<h2 class=\"mb-3 font-bold\">" + domain + "</h2>"
+            page_body += "<h2 class=\"mb-3 font-bold\">" + html.escape(domain) + "</h2>"
 
             # Sort the URL list (if applicable)
             if sort_results == 1:
@@ -129,7 +131,7 @@ def get_base_domains(url_list, sort_results):
 
 
 def get_url_headers(url):
-    result = url
+    result = html.escape(url)
 
     try:
 
@@ -151,7 +153,7 @@ def get_url_headers(url):
 
                 elif status_code == "301" or status_code == "302":
 
-                    location = str(resp.headers["Location"])
+                    location = html.escape(str(resp.headers["Location"]))
                     result += badge("info", status_code + ">") + " " + location
 
                 elif (
@@ -218,7 +220,7 @@ def display_homepage(form_input, page_body, sort_results):
 
 
 def badge(status, text):
-    return '<span class="badge-' + get_badge_colour(status) + '">' + text + "</span>"
+    return '<span class="badge-' + get_badge_colour(status) + '">' + html.escape(text) + "</span>"
 
 
 def get_badge_colour(status):
