@@ -9,6 +9,27 @@
     themes: bumblebee --default, business --prefersdark;
 }
 
+/* Status badges from get_badge_colour in __init__.py. Fixed colours in both modes, dark enough that
+   white text passes WCAG AA (green 5.14:1, orange 5.18:1, red 4.83:1). */
+.badge-green,
+.badge-orange,
+.badge-red {
+    color: white;
+    padding: 4px 8px;
+    margin: 0 2px 0 6px;
+    text-align: center;
+    border-radius: 5px;
+}
+.badge-green {
+    background-color: #008000;
+}
+.badge-orange {
+    background-color: #c2410c;
+}
+.badge-red {
+    background-color: #dc2626;
+}
+
 /* Dark mode tweaks: a darker blue than business's primary (oklch(41.703% .099 251.473)) for
    the Lookup button, and bumblebee's rounder corners (values from the bumblebee theme). */
 @media (prefers-color-scheme: dark) {
