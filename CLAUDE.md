@@ -35,9 +35,9 @@ All server logic is in `services/web/project/__init__.py`; `services/web/manage.
 
 POST `/` flow:
 1. `cleanup_url_list` splits the textarea on whitespace.
-2. `expand_url_list` turns each bare domain into four URLs (http/https × with/without `www.`); full `http(s)://` URLs pass through unchanged.
-3. `get_base_domains` groups the URLs by registrable domain using `tldextract`. Grouping matches URLs to a domain by checking for `"." + domain` or `"/" + domain` in the URL, so `example.com` doesn't match `anotherexample.com`.
-4. `get_url_headers` fetches the URL with a `requests.Session` (follows redirects; the 8s timeout applies to each connection attempt and to each wait for data, not to DNS resolution or the whole lookup) and walks `response.history` to render each hop as a badge.
+2. `expand_url_list` turns each bare domain into four URLs (http/https × with/without `www.`) and each bare IP address into two (http/https); full `http(s)://` URLs pass through unchanged.
+3. `process_url_list` groups the URLs by `get_base_domain`, which is the registrable domain from `tldextract`, or the host itself for IP addresses and hosts like `localhost` that have no public suffix.
+4. `get_url_headers` fetches the URL with a `requests.Session` (follows redirects; the 8s timeout applies to each connection attempt and to each wait for data, not to DNS resolution or the whole lookup) and renders each redirect in `response.history` as an orange badge with its `Location`, then the final status from `status_badge` (2xx green, 3xx orange, 4xx and 5xx red).
 
 Outbound connections are restricted to public addresses. At import, `project/__init__.py` replaces `urllib3.util.connection.create_connection` (the function urllib3, and so requests, opens every socket with) with `create_public_connection`. That function resolves the host once, raises `BlockedAddressError` if any address fails `is_public_address`, and connects to the checked IP itself. Because the check happens at connect time, it covers every redirect hop and DNS rebinding. Any new outbound HTTP code goes through it too, and `get_url_headers` catches the error to show a "BLOCKED" badge. `get_url_headers` fetches with a `requests.Session` that has `trust_env = False`. With a proxy from `HTTP_PROXY` and similar variables, the hook would only check the proxy's address, so any new fetch code needs the same setting.
 

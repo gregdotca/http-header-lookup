@@ -2,6 +2,7 @@
 import html
 import ipaddress
 import socket
+from urllib.parse import urlsplit
 
 from flask import Flask, render_template, request
 import requests
@@ -65,7 +66,7 @@ def home_post():
     try:
         post_data_clean, url_list_clean = cleanup_url_list(request.form["url_list"])
     except Exception:
-        exit("There was an error cleaning the URL list, please try again.")
+        return display_homepage("", "There was an error cleaning the URL list, please try again.", 0)
 
     # Expand the URL list to include all possible variations (www, non-www, http, https)
     # This only applies to domains, complete URLs are left as-is
@@ -108,6 +109,17 @@ def expand_url_list(url_list):
 
             url_list_expanded.append(url)
 
+        # Bare IPv6 addresses need brackets in a URL, and IP addresses don't have a www. variation
+        elif is_ip_address(url) and ":" in url:
+
+            url_list_expanded.append("http://[" + url + "]")
+            url_list_expanded.append("https://[" + url + "]")
+
+        elif is_ip_address(get_host("http://" + url)):
+
+            url_list_expanded.append("http://" + url)
+            url_list_expanded.append("https://" + url)
+
         # Otherwise add all possible variations
         else:
 
@@ -127,26 +139,28 @@ def process_url_list(url_list, sort_results):
 
     try:
 
-        # Retrieve a list of the base domains in the URL list
-        base_domains = get_base_domains(url_list, sort_results)
+        # Group the URLs by base domain, keeping the order they were entered in
+        url_groups = {}
+        for url in url_list:
+            url_groups.setdefault(get_base_domain(url), []).append(url)
+
+        base_domains = list(url_groups)
+
+        # Sort the base domains and URLs (if applicable)
+        if sort_results == 1:
+            base_domains.sort()
 
         # Create a list of HTTP header lookups to display in the homepage's body, grouped by domain
         for domain in base_domains:
 
             page_body += "<h2 class=\"mb-3 font-bold\">" + html.escape(domain) + "</h2>"
 
-            # Sort the URL list (if applicable)
+            urls = url_groups[domain]
             if sort_results == 1:
-                url_list.sort()
+                urls = sorted(urls)
 
-            # Retrieve all URLs that match the current domain
-            for url in url_list:
-
-                # Check to see if the domain is in the URL - Match based on the base domain being
-                # preceded by a "." or "/" in order to avoid matching domains that appears within
-                # other domains (example.com and anotherexample.com)
-                if "." + domain in url or "/" + domain in url:
-                    page_body += get_url_headers(url)
+            for url in urls:
+                page_body += get_url_headers(url)
 
             page_body += "<BR>"
 
@@ -157,21 +171,26 @@ def process_url_list(url_list, sort_results):
     return page_body
 
 
-def get_base_domains(url_list, sort_results):
-    # Retrieve a list of the base domains in the URL list
-    base_domains = []
-    for url in url_list:
-        url_parts = tldextract.extract(url)
-        base_domains.append(url_parts.domain + "." + url_parts.suffix)
+def get_base_domain(url):
+    # IP addresses and hosts without a public suffix (such as localhost) have no base domain, so they're
+    # grouped by their host instead
+    return tldextract.extract(url).top_domain_under_public_suffix or get_host(url) or url
 
-    # Remove duplicates from the base domain list
-    base_domains = list(dict.fromkeys(base_domains))
 
-    # Sort the base domain list (if applicable)
-    if sort_results == 1:
-        base_domains.sort()
+def get_host(url):
+    # urlsplit raises ValueError for some malformed URLs (such as an unclosed "["), so return None for those
+    try:
+        return urlsplit(url).hostname
+    except ValueError:
+        return None
 
-    return base_domains
+
+def is_ip_address(host):
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except (TypeError, ValueError):
+        return False
 
 
 def get_url_headers(url):
@@ -185,68 +204,13 @@ def get_url_headers(url):
             session.trust_env = False
             response = session.get(url, timeout=8)
 
-        if response.history:
+        # The history only holds the redirects that were followed (301, 302, 303, 307, 308)
+        for resp in response.history:
 
-            number_of_hops = len(response.history)
-            count = 0
+            location = html.escape(resp.headers.get("Location", ""))
+            result += badge("info", str(resp.status_code) + ">") + " " + location
 
-            for resp in response.history:
-
-                status_code = str(resp.status_code)
-                reason = str(resp.reason).upper()
-
-                if status_code == "200":
-
-                    result += badge("success", status_code + " " + reason)
-
-                elif status_code == "301" or status_code == "302":
-
-                    location = html.escape(str(resp.headers["Location"]))
-                    result += badge("info", status_code + ">") + " " + location
-
-                elif (
-                        status_code == "404" or status_code == "500" or status_code == "502"
-                ):
-
-                    result += badge("failure", status_code + " " + reason)
-
-                count += 1
-
-                if count == number_of_hops:
-
-                    status_code = str(response.status_code)
-                    reason = str(response.reason.upper())
-                    badge_type = ""
-
-                    if status_code == "200":
-
-                        badge_type = "success"
-
-                    elif (
-                            status_code == "404"
-                            or status_code == "500"
-                            or status_code == "502"
-                    ):
-
-                        badge_type = "failure"
-
-                    result += badge(badge_type, status_code + " " + reason)
-
-        else:
-
-            status_code = str(response.status_code)
-            reason = str(response.reason.upper())
-            badge_type = ""
-
-            if status_code == "200":
-
-                badge_type = "success"
-
-            elif status_code == "404" or status_code == "500" or status_code == "502":
-
-                badge_type = "failure"
-
-            result += badge(badge_type, status_code + " " + reason)
+        result += status_badge(response)
 
         result += "<BR><BR>"
 
@@ -269,6 +233,19 @@ def display_homepage(form_input, page_body, sort_results):
         page_body=page_body,
         sort_results=sort_results,
     )
+
+
+def status_badge(response):
+    status_code = response.status_code
+
+    if status_code < 300:
+        badge_type = "success"
+    elif status_code < 400:
+        badge_type = "info"
+    else:
+        badge_type = "failure"
+
+    return badge(badge_type, str(status_code) + " " + str(response.reason or "").upper())
 
 
 def badge(status, text):
