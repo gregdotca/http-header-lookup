@@ -12,7 +12,7 @@ https://headers.greg.ca
 
 ## Usage
 
-Enter a list of domains and/or complete URLs and their HTTP headers will be displayed. If you only enter a domain, the four common variations will be checked and displayed (www, non-www, http, https).
+Enter a list of domains and/or complete URLs and their HTTP status codes and redirects will be displayed. If you only enter a domain, the four common variations will be checked and displayed (www, non-www, http, https).
 
 ## License
 
