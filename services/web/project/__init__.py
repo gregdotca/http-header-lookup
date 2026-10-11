@@ -1,13 +1,57 @@
 #!/usr/bin/env python3
 import html
+import ipaddress
+import socket
 
 from flask import Flask, render_template, request
 import requests
 import tldextract
+import urllib3.util.connection
 
 app = Flask(__name__, static_folder="assets")
 
 APP_TITLE = "HTTP Header Lookup"
+
+
+class BlockedAddressError(Exception):
+    pass
+
+
+def is_public_address(ip):
+    # Treat IPv4-mapped IPv6 addresses (::ffff:127.0.0.1) as the IPv4 address they contain
+    ip = getattr(ip, "ipv4_mapped", None) or ip
+    return ip.is_global and not ip.is_multicast
+
+
+create_connection = urllib3.util.connection.create_connection
+
+
+def create_public_connection(address, *args, **kwargs):
+    # Refuse to connect to private, loopback, and other non-public addresses, so the lookup can't be
+    # used to probe the server's own network. This runs for every connection, including each redirect
+    # hop. The host is resolved once and the checked IP is connected to directly, so a second DNS lookup
+    # can't swap in a private address. TLS still uses the hostname for SNI and certificate checks.
+    host, port = address
+    addresses = []
+
+    for info in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
+        ip = info[4][0]
+        if not is_public_address(ipaddress.ip_address(ip)):
+            raise BlockedAddressError(host)
+        addresses.append(ip)
+
+    error = None
+    for ip in dict.fromkeys(addresses):
+        try:
+            return create_connection((ip, port), *args, **kwargs)
+        except OSError as e:
+            error = e
+
+    raise error
+
+
+# urllib3 (used by requests) opens every connection through this function
+urllib3.util.connection.create_connection = create_public_connection
 
 
 @app.route("/")
@@ -135,7 +179,11 @@ def get_url_headers(url):
 
     try:
 
-        response = requests.get(url, timeout=8)
+        # Ignore proxy settings from the environment: with a proxy, create_public_connection would only
+        # check the proxy's address, and the proxy could still connect to a private one
+        with requests.Session() as session:
+            session.trust_env = False
+            response = session.get(url, timeout=8)
 
         if response.history:
 
@@ -201,6 +249,10 @@ def get_url_headers(url):
             result += badge(badge_type, status_code + " " + reason)
 
         result += "<BR><BR>"
+
+    except BlockedAddressError:
+
+        result += badge("failure", "BLOCKED: NOT A PUBLIC ADDRESS") + "<BR><BR>"
 
     except Exception:
 

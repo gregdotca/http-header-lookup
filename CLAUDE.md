@@ -37,9 +37,11 @@ POST `/` flow:
 1. `cleanup_url_list` splits the textarea on whitespace.
 2. `expand_url_list` turns each bare domain into four URLs (http/https × with/without `www.`); full `http(s)://` URLs pass through unchanged.
 3. `get_base_domains` groups the URLs by registrable domain using `tldextract`. Grouping matches URLs to a domain by checking for `"." + domain` or `"/" + domain` in the URL, so `example.com` doesn't match `anotherexample.com`.
-4. `get_url_headers` runs `requests.get` (8s timeout, follows redirects) and walks `response.history` to render each hop as a badge.
+4. `get_url_headers` fetches the URL with a `requests.Session` (follows redirects; the 8s timeout applies to each connection attempt and to each wait for data, not to DNS resolution or the whole lookup) and walks `response.history` to render each hop as a badge.
 
-The result is built as a raw HTML string and rendered in `services/web/project/templates/home.html` with `{{ page_body|safe }}`, so anything added to it isn't escaped.
+Outbound connections are restricted to public addresses. At import, `project/__init__.py` replaces `urllib3.util.connection.create_connection` (the function urllib3, and so requests, opens every socket with) with `create_public_connection`. That function resolves the host once, raises `BlockedAddressError` if any address fails `is_public_address`, and connects to the checked IP itself. Because the check happens at connect time, it covers every redirect hop and DNS rebinding. Any new outbound HTTP code goes through it too, and `get_url_headers` catches the error to show a "BLOCKED" badge. `get_url_headers` fetches with a `requests.Session` that has `trust_env = False`. With a proxy from `HTTP_PROXY` and similar variables, the hook would only check the proxy's address, so any new fetch code needs the same setting.
+
+The result is built as a raw HTML string and rendered in `services/web/project/templates/home.html` with `{{ page_body|safe }}`, so the template doesn't escape it. Any user input or value from a remote server added to it must go through `html.escape`. Use the standard library's `html.escape` and not `markupsafe.escape`: adding a `Markup` object to a plain string escapes the whole string, including the HTML already in it.
 
 Frontend: `home.html` loads Tailwind and daisyUI from jsDelivr (`bumblebee` theme), plus jQuery from `services/web/project/assets/` (Flask's `static_folder` is `assets`). The `.badge-*` CSS classes in the template must match the colours returned by `get_badge_colour`.
 
