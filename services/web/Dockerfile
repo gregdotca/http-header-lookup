@@ -3,7 +3,7 @@
 ###########
 
 # pull official base image
-FROM python:3.9.21-slim as builder
+FROM python:3.14.8-slim as builder
 
 # set work directory
 WORKDIR /usr/src/app
@@ -18,7 +18,7 @@ RUN apt-get update && \
 
 # lint
 RUN pip install --upgrade pip
-RUN pip install flake8==3.9.1
+RUN pip install flake8==7.4.1
 COPY . .
 RUN flake8 --ignore=E501,W503,F401 .
 
@@ -32,7 +32,7 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requir
 #########
 
 # pull official base image
-FROM python:3.9.21-slim
+FROM python:3.14.8-slim
 
 # create directory for the app user
 RUN mkdir -p /home/app
@@ -57,8 +57,8 @@ RUN pip install --no-cache /wheels/*
 # copy project
 COPY . $APP_HOME
 
-# chown all the files to the app user
-RUN chown -R app:app $APP_HOME
+# chown the app user's home (including the project) to the app user, so it can write caches there
+RUN chown -R app:app $HOME
 
 # change to the app user
 USER app
