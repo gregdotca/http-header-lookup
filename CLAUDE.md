@@ -15,6 +15,14 @@ docker-compose up -d --build        # build and run at http://localhost:8092
 docker-compose logs -f web
 ```
 
+Without Docker, the CSS needs the [Tailwind standalone CLI](https://github.com/tailwindlabs/tailwindcss/releases):
+
+```bash
+cd services/web
+tailwindcss -i project/styles/app.css -o project/assets/app.css --watch &
+FLASK_APP=project/__init__.py flask --debug run
+```
+
 Lint (this runs inside the production Docker build, so a lint failure breaks the build):
 
 ```bash
@@ -25,7 +33,7 @@ There is no test suite. `test.py` in the repo root is an untracked scratch scrip
 
 ### Dev vs. prod environment swap
 
-The dev setup is local-only: `docker-compose.DEV.yml`, `services/web/Dockerfile.DEV`, `to-dev.sh`, and `to-prod.sh` are listed in `.git/info/exclude`, not committed. `./to-dev.sh` renames files so the dev versions become `docker-compose.yml` and `services/web/Dockerfile` (the prod ones become `*.PROD`); `./to-prod.sh` swaps them back. The dev config runs Flask's debug server on port 5000 with `services/web/` bind-mounted for live reload.
+The dev setup is local-only: `docker-compose.DEV.yml`, `services/web/Dockerfile.DEV`, `to-dev.sh`, and `to-prod.sh` are listed in `.git/info/exclude`, not committed. `./to-dev.sh` renames files so the dev versions become `docker-compose.yml` and `services/web/Dockerfile` (the prod ones become `*.PROD`); `./to-prod.sh` swaps them back. The dev config runs Flask's debug server on port 5000 with `services/web/` bind-mounted for live reload. Alongside it, `tailwindcss --watch=always` rebuilds `project/assets/app.css` into the mounted directory (`--watch=always` because the container's stdin is closed), so that file is root-owned on the host.
 
 If `docker-compose.PROD.yml` exists, the dev environment is active, and the dev `docker-compose.yml` and `Dockerfile` will show up as modifications to the tracked files. Switch back with `./to-prod.sh` before committing. In a clone without these local files, there's nothing to swap.
 
@@ -43,6 +51,8 @@ Outbound connections are restricted to public addresses. At import, `project/__i
 
 The result is built as a raw HTML string and rendered in `services/web/project/templates/home.html` with `{{ page_body|safe }}`, so the template doesn't escape it. Any user input or value from a remote server added to it must go through `html.escape`. Use the standard library's `html.escape` and not `markupsafe.escape`: adding a `Markup` object to a plain string escapes the whole string, including the HTML already in it.
 
-Frontend: `home.html` loads Tailwind and daisyUI from jsDelivr (`bumblebee` theme), plus jQuery from `services/web/project/assets/` (Flask's `static_folder` is `assets`). The `.badge-*` CSS classes in the template must match the colours returned by `get_badge_colour`.
+Frontend: Tailwind 4 and daisyUI 5 are built at Docker build time, not loaded from a CDN. The Tailwind standalone CLI (version and per-architecture SHA-256s pinned as `ARG`s in the Dockerfile builder stage) compiles `services/web/project/styles/app.css` into `project/assets/app.css` (gitignored), which the final stage copies in. daisyUI is the vendored plugin `project/styles/daisyui-<version>.mjs`. `app.css` uses `source(none)` and scans only `project/templates/` and `project/__init__.py`, because `process_url_list` outputs Tailwind classes in its HTML. A class used anywhere else, such as only from JavaScript, won't be in the build. To upgrade either tool, update the Dockerfile `ARG`s (and `Dockerfile.DEV`), or replace the `.mjs` file and its reference in `app.css`.
+
+Static files are served from `project/assets/` at `/assets/...` (Flask's `static_folder`; use `url_for('static', ...)`). jQuery and the favicon are vendored there. The `.badge-*` CSS classes in the template's inline `<style>` must match the colours returned by `get_badge_colour`.
 
 `services/web/project/templates/custom.headers` is gitignored and included into `<head>` with `ignore missing`. It holds deployment-specific HTML, such as analytics snippets.
