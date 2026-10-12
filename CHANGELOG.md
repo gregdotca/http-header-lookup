@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-12
+
+- Added Dependabot version updates in a new `.github/dependabot.yml`. Dependabot alerts and security fix PRs (set in the GitHub repo's settings, not in this file) only cover known vulnerabilities; nothing kept the pinned packages or the Python base image current otherwise. Dependabot now checks `services/web/requirements.txt` and `requirements-dev.txt` (pytest) and the Python base image in `services/web/Dockerfile` once a month, with all pip updates grouped into one PR. It only proposes versions that have been out for at least 7 days, so a bad or hijacked release has time to be caught and pulled first; security fix PRs aren't delayed. The versions pinned inside the `Dockerfile`'s build steps (flake8 and the Tailwind CLI) aren't covered and still need updating by hand. GitHub Actions isn't included because the repo has no workflows.
+
 ## 2026-10-11
 
 - Added a limit of 10 domains or URLs per lookup (`MAX_ENTRIES` in `services/web/project/__init__.py`). There was no limit, so one request could expand thousands of entries into tens of thousands of lookups. That tied up the server for the full 45 seconds, let anyone use the public demo to scan many sites at once, and mostly returned "TIME LIMIT REACHED" badges anyway. Longer lists are now refused with a message before anything is looked up, and the list and sort setting are kept so it can be shortened. Repeated entries count once, since they're only looked up once. The label in `home.html` says the limit. New tests in `services/web/tests/test_app.py` cover the limit. `CLAUDE.md` describes it.
