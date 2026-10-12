@@ -8,7 +8,7 @@ HTTP Header Lookup is a single-page Flask app (demo: https://headers.greg.ca). A
 
 ## Commands
 
-Production (the committed config): gunicorn behind Docker on host port 8092.
+Production (the committed config): gunicorn behind Docker on host port 8092, with 2 workers of 4 threads each (`gthread`) and a 60-second timeout, set in `docker-compose.yml`.
 
 ```bash
 docker-compose up -d --build        # build and run at http://localhost:8092
@@ -55,7 +55,8 @@ POST `/` flow:
 1. `cleanup_url_list` splits the textarea on whitespace.
 2. `expand_url_list` turns each bare domain into four URLs (http/https × with/without `www.`) and each bare IP address into two (http/https); full `http(s)://` URLs pass through unchanged.
 3. `process_url_list` groups the URLs by `get_base_domain`, which is the registrable domain from `tldextract`, or the host itself for IP addresses and hosts like `localhost` that have no public suffix. URLs that can't be parsed (such as an unclosed `[`) are grouped by what's left after removing the scheme and `www.`, so all the variations of one entry stay in one group.
-4. `get_url_headers` fetches the URL with a `requests.Session` (follows redirects; the 8s timeout applies to each connection attempt and to each wait for data, not to DNS resolution or the whole lookup) and renders each redirect in `response.history` as an orange badge with its `Location`, then the final status from `status_badge` (2xx green, 3xx orange, 4xx and 5xx red).
+4. `look_up_urls` runs `get_url_headers` for every URL in a thread pool (`MAX_PARALLEL_LOOKUPS`, 10 at once) and stops waiting after `LOOKUP_TIME_LIMIT` (45 seconds, under the 60 seconds many reverse proxies wait and under gunicorn's timeout). URLs that haven't finished by then get a red "TIME LIMIT REACHED" badge. Ones not started are cancelled, and ones still running are stopped at their next connection or read (a DNS lookup in progress can't be interrupted, but the resolver's own timeouts end it, and `create_public_connection` then refuses to connect): `run_lookup` gives each lookup thread a `Lookup` object, `create_public_connection` registers every socket it opens with it, and `Lookup.cancel` shuts those sockets down and refuses new connections. Without that, a server sending a byte every few seconds could keep a thread busy forever, since `LOOKUP_TIMEOUT` only limits each wait for data. Results are shown in entry order, not finishing order.
+5. `get_url_headers` fetches the URL with a `requests.Session` (follows redirects; `stream=True`, so the final response's body is never downloaded; the `LOOKUP_TIMEOUT` of 8 seconds applies to each connection attempt and to each wait for data, not to DNS resolution or the whole lookup) and renders each redirect in `response.history` as an orange badge with its `Location`, then the final status from `status_badge` (2xx green, 3xx orange, 4xx and 5xx red).
 
 Outbound connections are restricted to public addresses. At import, `project/__init__.py` replaces `urllib3.util.connection.create_connection` (the function urllib3, and so requests, opens every socket with) with `create_public_connection`. That function resolves the host once, raises `BlockedAddressError` if any address fails `is_public_address`, and connects to the checked IP itself. Because the check happens at connect time, it covers every redirect hop and DNS rebinding. Any new outbound HTTP code goes through it too, and `get_url_headers` catches the error to show a "BLOCKED" badge. `get_url_headers` fetches with a `requests.Session` that has `trust_env = False`. With a proxy from `HTTP_PROXY` and similar variables, the hook would only check the proxy's address, so any new fetch code needs the same setting.
 
