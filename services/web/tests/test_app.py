@@ -10,6 +10,14 @@ def test_home_page(client):
     assert 'name="url_list"' in response.text
 
 
+def test_home_page_is_not_in_quirks_mode(client):
+    response = client.get("/")
+
+    assert response.text.startswith("<!doctype html>")
+    assert '<html lang="en">' in response.text
+    assert 'name="viewport"' in response.text
+
+
 def test_post_without_url_list_shows_error(client):
     response = client.post("/", data={})
 
@@ -30,6 +38,40 @@ def test_post_looks_up_every_variation(client, no_lookups):
     ]:
         assert "[lookup " + url + "]" in response.text
     assert "http://https://" not in response.text
+
+
+def test_post_accepts_the_maximum_number_of_entries(client, no_lookups):
+    entries = ["site" + str(i) + ".com" for i in range(project.MAX_ENTRIES)]
+
+    response = client.post("/", data={"url_list": "\n".join(entries)})
+
+    for entry in entries:
+        assert "[lookup https://" + entry + "]" in response.text
+
+
+def test_post_counts_repeated_entries_once(client, no_lookups):
+    entries = ["site" + str(i) + ".com" for i in range(project.MAX_ENTRIES)]
+
+    response = client.post("/", data={"url_list": "\n".join(entries + entries)})
+
+    assert "[lookup https://site0.com]" in response.text
+    assert "at a time" not in response.text
+
+
+def test_post_refuses_too_many_entries(client, monkeypatch):
+    def fail(url):
+        raise AssertionError("looked up " + url)
+
+    monkeypatch.setattr(project, "get_url_headers", fail)
+    entries = ["site" + str(i) + ".com" for i in range(project.MAX_ENTRIES + 1)]
+
+    response = client.post("/", data={"url_list": "\n".join(entries), "sort_results": "1"})
+
+    assert response.status_code == 200
+    assert "Enter up to 10 domains or URLs at a time (you entered 11)." in response.text
+    # The list and the sort setting are kept, so the visitor can shorten the list and try again
+    assert "site10.com" in response.text
+    assert 'value="1" checked' in response.text
 
 
 def test_post_escapes_input(client, no_lookups, monkeypatch):

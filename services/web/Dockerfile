@@ -3,14 +3,14 @@
 ###########
 
 # pull official base image
-FROM python:3.14.8-slim as builder
+FROM python:3.14.8-slim AS builder
 
 # set work directory
 WORKDIR /usr/src/app
 
 # set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # install system dependencies
 RUN apt-get update && \
@@ -30,18 +30,18 @@ RUN case "$(dpkg --print-architecture)" in \
     echo "$sha  /usr/local/bin/tailwindcss" | sha256sum -c - && \
     chmod +x /usr/local/bin/tailwindcss
 
-# lint
+# build the python dependencies first, so a code change doesn't rebuild them
 RUN pip install --upgrade pip
 RUN pip install flake8==7.4.1
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+# lint
 COPY . .
 RUN flake8 --ignore=E501,W503,F401 .
 
 # build css
 RUN tailwindcss -i project/styles/app.css -o project/assets/app.css --minify
-
-# install python dependencies
-COPY ./requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
 
 
 #########
@@ -64,8 +64,6 @@ RUN mkdir $APP_HOME
 WORKDIR $APP_HOME
 
 # install dependencies
-# RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd
-RUN apt-get update
 COPY --from=builder /usr/src/app/wheels /wheels
 COPY --from=builder /usr/src/app/requirements.txt .
 RUN pip install --upgrade pip

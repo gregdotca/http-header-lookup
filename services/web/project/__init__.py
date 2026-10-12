@@ -24,6 +24,10 @@ LOOKUP_TIMEOUT = 8
 MAX_PARALLEL_LOOKUPS = 10
 LOOKUP_TIME_LIMIT = 45
 
+# How many domains or URLs one list can have, so a long list can't tie up the server or be used for scanning.
+# A domain expands to 4 URLs, so this is at most 40 lookups.
+MAX_ENTRIES = 10
+
 
 class BlockedAddressError(Exception):
     pass
@@ -116,7 +120,7 @@ urllib3.util.connection.create_connection = create_public_connection
 
 @app.route("/")
 def home():
-    return render_template("home.html", app_title=APP_TITLE, page_body="", sort_results=0)
+    return display_homepage("", "", 0)
 
 
 @app.route("/", methods=["POST"])
@@ -127,18 +131,24 @@ def home_post():
     except Exception:
         return display_homepage("", "There was an error cleaning the URL list, please try again.", 0)
 
+    # Determine if the user wants to sort the results
+    try:
+        sort_results = int(request.form["sort_results"])
+    except Exception:
+        sort_results = 0
+
+    # Refuse lists that are too long, counting repeated entries once since they're only looked up once
+    entry_count = len(dict.fromkeys(url_list_clean))
+    if entry_count > MAX_ENTRIES:
+        message = "Enter up to " + str(MAX_ENTRIES) + " domains or URLs at a time (you entered " + str(entry_count) + ")."
+        return display_homepage(post_data_clean, message, sort_results)
+
     # Expand the URL list to include all possible variations (www, non-www, http, https)
     # This only applies to domains, complete URLs are left as-is
     url_list_expanded = expand_url_list(url_list_clean)
 
     # Remove duplicates
     url_list_unique = list(dict.fromkeys(url_list_expanded))
-
-    # Determine if the user wants to sort the results
-    try:
-        sort_results = int(request.form["sort_results"])
-    except Exception:
-        sort_results = 0
 
     # Process the URL list and return the HTML to display in the homepage's body
     page_body = process_url_list(url_list_unique, sort_results)
@@ -327,6 +337,7 @@ def display_homepage(form_input, page_body, sort_results):
     return render_template(
         "home.html",
         app_title=APP_TITLE,
+        max_entries=MAX_ENTRIES,
         url_list=form_input,
         page_body=page_body,
         sort_results=sort_results,

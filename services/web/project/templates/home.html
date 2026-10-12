@@ -1,5 +1,8 @@
-<html>
+<!doctype html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <title>{{ app_title }}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}">
@@ -10,7 +13,7 @@
 <body class="p-8">
 <div id="content">
     <h1 class="text-2xl mb-3"><a href="/">{{ app_title }}</a></h1>
-    <label for="url_list" class="block mb-3">Enter a list of domains or URLs, one per line</label>
+    <label for="url_list" class="block mb-3">Enter up to {{ max_entries }} domains or URLs, one per line</label>
     <form method="POST" action="/" class="form pb-7">
         <div class="flex justify-left">
             <fieldset class="fieldset bg-base-200 border border-base-300 p-10 -ml-1 rounded-box">
