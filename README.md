@@ -1,7 +1,7 @@
 HTTP Header Lookup
 ------------------
 
-[![ACR B2b](https://img.shields.io/badge/ACR-B2b-2140B5)](ACR.md)
+[![ACR B3b](https://img.shields.io/badge/ACR-B3b-2140B5)](ACR.md)
 
 ## Demo
 
@@ -16,6 +16,16 @@ https://headers.greg.ca
 ## Usage
 
 Enter a list of domains and/or complete URLs and their HTTP status codes and redirects will be displayed. If you only enter a domain, the four common variations will be checked and displayed (www, non-www, http, https).
+
+## Running the Tests
+
+```bash
+cd services/web
+python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+.venv/bin/pytest
+```
+
+The tests don't need Docker or internet access.
 
 ## License
 

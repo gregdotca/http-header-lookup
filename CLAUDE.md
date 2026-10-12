@@ -29,7 +29,17 @@ Lint (this runs inside the production Docker build, so a lint failure breaks the
 cd services/web && flake8 --ignore=E501,W503,F401 .
 ```
 
-There is no test suite. `test.py` in the repo root is an untracked scratch script, not a test.
+Tests (pytest, in `services/web/tests/`; not run in the Docker build, but flake8 there lints them):
+
+```bash
+cd services/web
+uv venv -p 3.14 && uv pip install -r requirements-dev.txt
+.venv/bin/pytest
+```
+
+The tests never touch the internet. An autouse fixture in `conftest.py` makes tldextract use its bundled public suffix list instead of downloading one. `conftest.py` also resolves the fake hosts `public.test` (127.0.0.1) and `private.test` (10.0.0.1), and the `public_test_server` fixture runs a local HTTP server whose routes each test sets, letting only 127.0.0.1 through `is_public_address`. Tests of the page and grouping use the `no_lookups` fixture, which replaces `get_url_headers` with a stub. A new security fix needs a test that fails without it (like the escaping, proxy, and redirect-to-private tests).
+
+`test.py` in the repo root is an untracked scratch script, not a test.
 
 ### Dev vs. prod environment swap
 

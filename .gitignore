@@ -1,2 +1,4 @@
 /services/web/project/templates/custom.headers
 /services/web/project/assets/app.css
+/services/web/.venv/
+/services/web/.pytest_cache/
