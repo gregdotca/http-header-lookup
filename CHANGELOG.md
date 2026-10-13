@@ -2,6 +2,7 @@
 
 ## 2026-10-12
 
+- Updated tldextract from 5.3.2 to 5.4.0 in `services/web/requirements.txt` (Dependabot PR #1, made locally instead of merged). All 92 tests pass on Python 3.14.8, and a lookup in the production image works.
 - Added Dependabot version updates in a new `.github/dependabot.yml`. Dependabot alerts and security fix PRs (set in the GitHub repo's settings, not in this file) only cover known vulnerabilities; nothing kept the pinned packages or the Python base image current otherwise. Dependabot now checks `services/web/requirements.txt` and `requirements-dev.txt` (pytest) and the Python base image in `services/web/Dockerfile` once a month, with all pip updates grouped into one PR. It only proposes versions that have been out for at least 7 days, so a bad or hijacked release has time to be caught and pulled first; security fix PRs aren't delayed. The versions pinned inside the `Dockerfile`'s build steps (flake8 and the Tailwind CLI) aren't covered and still need updating by hand. GitHub Actions isn't included because the repo has no workflows.
 
 ## 2026-10-11
