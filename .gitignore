@@ -2,3 +2,4 @@
 /services/web/project/assets/app.css
 /services/web/.venv/
 /services/web/.pytest_cache/
+/.env

@@ -11,7 +11,9 @@ https://headers.greg.ca
 
 - Clone the repository
 - Run "docker-compose up -d"
-- Load http://IP_ADDRESS:8092 in your web browser
+- Load http://localhost:8092 in your web browser
+
+By default the port only listens on 127.0.0.1, so the app can only be reached from the same machine, such as through a reverse proxy running there. To listen on a different address, set `BIND_ADDRESS`, either in the shell or in a `.env` file next to `docker-compose.yml` (for example, `BIND_ADDRESS=0.0.0.0` listens on every address).
 
 ## Usage
 

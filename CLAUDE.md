@@ -8,7 +8,7 @@ HTTP Header Lookup is a single-page Flask app (demo: https://headers.greg.ca). A
 
 ## Commands
 
-Production (the committed config): gunicorn behind Docker on host port 8092, with 2 workers of 4 threads each (`gthread`) and a 60-second timeout, set in `docker-compose.yml`.
+Production (the committed config): gunicorn behind Docker on host port 8092 (bound to `${BIND_ADDRESS:-127.0.0.1}`, so only localhost unless `BIND_ADDRESS` is set in the shell or a gitignored `.env` next to `docker-compose.yml`; never commit a server's real IP), with 2 workers of 4 threads each (`gthread`) and a 60-second timeout, set in `docker-compose.yml`.
 
 ```bash
 docker-compose up -d --build        # build and run at http://localhost:8092

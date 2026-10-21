@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-21
+
+- Changed `docker-compose.yml` to publish port 8092 on 127.0.0.1 by default instead of on every address. `8092:5000` made Docker listen on all of the host's addresses, including a public IP, so the app could be reached directly and skip any reverse proxy in front of it. Docker's port rules can also bypass host firewalls such as ufw. The port line is now `${BIND_ADDRESS:-127.0.0.1}:8092:5000`, so a different address can be set with `BIND_ADDRESS`, in the shell or in a `.env` file next to `docker-compose.yml`. `.gitignore` now excludes `.env`, so a server's own address stays out of the repo.
+- Updated the Installation steps in `README.md` to load http://localhost:8092 and to explain the default address and `BIND_ADDRESS`.
+
 ## 2026-10-12
 
 - Updated tldextract from 5.3.2 to 5.4.0 in `services/web/requirements.txt` (Dependabot PR #1, made locally instead of merged). All 92 tests pass on Python 3.14.8, and a lookup in the production image works.
